@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Random Group Maker</title>
+<style>
+  *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f7f7fb;color:#111;display:grid;place-items:center;min-height:100vh;padding:18px}.card{background:#fff;box-shadow:0 8px 30px #0002;border-radius:24px;padding:28px;max-width:850px;width:min(96vw,850px);text-align:center}h1{font-size:clamp(28px,5vw,54px);margin:0 0 12px}.small{color:#555;line-height:1.45}.row{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin:18px 0}input,button{font-size:18px;padding:12px 14px;border-radius:12px;border:1px solid #ccc}input[type=number]{width:110px}input[type=url]{width:min(700px,100%)}button{cursor:pointer;background:#111;color:white;border:none;font-weight:700}.secondary{background:#f1f1f5;color:#111;border:1px solid #ddd}.url{word-break:break-all;background:#f1f1f5;border-radius:12px;padding:10px;font-size:14px;text-align:left}.group{font-size:clamp(84px,22vw,180px);font-weight:900;margin:10px 0}.hidden{display:none}.notice{background:#fff4d8;border:1px solid #e5c566;border-radius:16px;padding:12px;margin:14px 0;text-align:left}#qrImg{width:min(70vw,430px);height:min(70vw,430px);max-width:430px;max-height:430px;background:white;border:12px solid white;border-radius:12px;image-rendering:pixelated}a.button{display:inline-block;text-decoration:none;background:#111;color:#fff;padding:12px 14px;border-radius:12px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="host">
+    <h1>Random Group Maker</h1>
+    <p class="small">Show this QR code on screen. Each phone that scans it gets a random group number.</p>
+
+    <div id="warning" class="notice hidden"></div>
+
+    <div class="row">
+      <label>Groups: <input id="groups" type="number" min="2" max="99" value="6"></label>
+      <button id="makeBtn" type="button">Make QR</button>
+      <button id="testBtn" type="button" class="secondary">Test on this device</button>
+    </div>
+
+    <div class="row">
+      <label style="width:100%;max-width:720px;text-align:left">Optional: exact public GitHub Pages URL of this file
+        <input id="publicUrl" type="url" placeholder="https://yourname.github.io/yourrepo/random_group_maker_github_pages.html">
+      </label>
+    </div>
+
+    <img id="qrImg" alt="QR code for participants to scan">
+    <p class="small">Participant link:</p>
+    <div id="scanUrl" class="url"></div>
+    <p class="small"><a id="openLink" class="button" href="#" target="_blank" rel="noopener">Open participant link</a></p>
+  </div>
+
+  <div id="participant" class="hidden">
+    <h1>Your group number is</h1>
+    <div id="groupNum" class="group"></div>
+    <p class="small">Take a screenshot or remember this number.</p>
+    <button id="drawAgain" type="button">Draw again</button>
+  </div>
+</div>
+
+<script>
+function qs(){ return new URLSearchParams(window.location.search); }
+function getGroupCount(){
+  const input = document.getElementById('groups');
+  const raw = input ? input.value : qs().get('groups');
+  return Math.max(2, Math.min(99, parseInt(raw || '6', 10) || 6));
+}
+function cleanBaseUrl(){
+  const entered = (document.getElementById('publicUrl')?.value || '').trim();
+  const raw = entered || window.location.href;
+  return raw.split('#')[0].split('?')[0];
+}
+function participantLink(){
+  return cleanBaseUrl() + '?join=1&groups=' + encodeURIComponent(getGroupCount());
+}
+function makeQR(){
+  const link = participantLink();
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=430x430&margin=20&data=' + encodeURIComponent(link);
+  document.getElementById('qrImg').src = qr;
+  document.getElementById('scanUrl').textContent = link;
+  document.getElementById('openLink').href = link;
+}
+function showWarning(){
+  const box = document.getElementById('warning');
+  if(location.protocol === 'file:'){
+    box.classList.remove('hidden');
+    box.innerHTML = '<b>Important:</b> this is open as a local file. Upload it to GitHub Pages and open the <b>https://...</b> page before showing the QR code.';
+  } else if(location.hostname.endsWith('github.io')){
+    box.classList.remove('hidden');
+    box.innerHTML = '<b>GitHub Pages detected.</b> If your phone camera still does not show a popup, click “Open participant link” on this computer. If that works, the issue is camera/QR recognition; enlarge the browser window, increase screen brightness, and scan from farther back.';
+  }
+}
+function showParticipant(){
+  const count = Math.max(2, Math.min(99, parseInt(qs().get('groups') || '6', 10) || 6));
+  const key = 'randomGroupNumber_' + count;
+  let n = localStorage.getItem(key);
+  if(!n){
+    n = String(Math.floor(Math.random() * count) + 1);
+    localStorage.setItem(key, n);
+  }
+  document.getElementById('host').classList.add('hidden');
+  document.getElementById('participant').classList.remove('hidden');
+  document.getElementById('groupNum').textContent = n;
+}
+function drawAgain(){
+  const count = Math.max(2, Math.min(99, parseInt(qs().get('groups') || '6', 10) || 6));
+  localStorage.removeItem('randomGroupNumber_' + count);
+  window.location.reload();
+}
+document.getElementById('makeBtn')?.addEventListener('click', makeQR);
+document.getElementById('testBtn')?.addEventListener('click', function(){ window.location.href = participantLink(); });
+document.getElementById('drawAgain')?.addEventListener('click', drawAgain);
+if(qs().get('join') === '1') showParticipant(); else { showWarning(); makeQR(); }
+</script>
+</body>
+</html>
