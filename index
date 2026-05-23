@@ -38,7 +38,7 @@
     <h1>Your group number is</h1>
     <div id="groupNum" class="group"></div>
     <p class="small">Take a screenshot or remember this number.</p>
-    <button id="drawAgain" type="button">Draw again</button>
+<!--    <button id="drawAgain" type="button">Draw again</button> -->
   </div>
 </div>
 
